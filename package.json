@@ -1,0 +1,17 @@
+{
+  "name": "html-template",
+  "version": "1.0.0",
+  "description": "Biblioteca js para criar elementos HTML de um jeito dinâmico, permitindo o reuso de código do HTML e JS de maneira simples, fornencer uma interface prática para os templates em HTML e seu construtor em JS.",
+  "main": "template.js",
+  "author": "Nadno",
+  "license": "MIT",
+  "scripts": {
+    "test": "jest ./tests"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.16.0",
+    "@babel/preset-env": "^7.16.4",
+    "jest": "^27.4.3",
+    "jsdom": "^18.1.1"
+  }
+}
