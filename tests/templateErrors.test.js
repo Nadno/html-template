@@ -108,7 +108,7 @@ describe('Template errors', () => {
     );
   });
 
-  it('should throw and error when an invalid argument is passed', () => {
+  it('should throw an error when an invalid argument is passed', () => {
     const invalidArguments = [[], '', true, false, 1, () => {}, function () {}];
 
     const template = new Template('#template-element');
