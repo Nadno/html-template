@@ -48,7 +48,7 @@ function Template(element) {
         const attrValue = $el.getAttribute(attrName);
         if (typeof attrValue != 'string') return;
 
-        const value = attrValue.replace(/{{+\w+}}/g, replaceTemplateStr);
+        const value = attrValue.replace(/{{\w+}}/g, replaceTemplateStr);
         $el.setAttribute(attrName, value);
       }
 
