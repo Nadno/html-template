@@ -7,13 +7,23 @@ function Template(element) {
       'The argument passed to Template must be a query string or an HTMLElement'
     );
 
+  const isTemplateTag = 'content' in element;
+  if (isTemplateTag) {
+    this._template = element.content;
+    return;
+  }
+
   this._template = document.createElement('div');
 
-  if (element.tagName === 'SCRIPT' && element.type === 'text/html') {
+  const isScriptTag =
+    element.tagName === 'SCRIPT' && element.type === 'text/html';
+
+  if (isScriptTag) {
     this._template.innerHTML = element.innerHTML;
-  } else {
-    this._template.appendChild(element);
+    return;
   }
+
+  this._template.appendChild(element);
 }
 
 (function () {
