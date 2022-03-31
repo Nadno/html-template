@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <template id="template-element">
+      <div class="card" id="{{cardName}}-{{cardIndex}}" data-attrs="id">
+        <div class="card-header" title="{{cardAction}}" data-attrs="title">
+          <h3 class="card-title" data-content="cardTitle"></h3>
+        </div>
+        <div class="card-body" data-content="cardContent"></div>
+      </div>
+    </template>
+
+    <template id="template-element-without-attrs">
+      <div class="card" id="{{cardName}}-{{cardIndex}}">
+        <div class="card-header" title="{{cardAction}}">
+          <h3 class="card-title" data-content="cardTitle"></h3>
+        </div>
+        <div class="card-body" data-content="cardContent"></div>
+      </div>
+    </template>
+
+    <template id="template-element-without-content">
+      <div class="card" id="{{cardName}}-{{cardIndex}}" data-attrs="id">
+        <div class="card-header" title="{{cardAction}}" data-attrs="title">
+          <h3 class="card-title"></h3>
+        </div>
+        <div class="card-body"></div>
+      </div>
+    </template>
+  </body>
+</html>
