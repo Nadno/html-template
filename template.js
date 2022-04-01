@@ -168,15 +168,24 @@ function Template(element) {
     },
     unwrapTemplate: function unwrapTemplate(element) {
       if (!element.firstElementChild) throw new TypeError('Template is empty');
-      const $template = element.firstElementChild;
 
-      try {
-        $template.remove();
-      } catch (e) {
-        element.removeChild($template);
+      const length = element.children.length;
+      if (length === 1) return element.firstElementChild;
+
+      const childElements = new Array(length),
+        children = element.children;
+      for (let index = 0; index < length; index++) {
+        const child = children[0];
+        childElements[index] = child;
+
+        try {
+          child.remove();
+        } catch (e) {
+          element.removeChild(child);
+        }
       }
 
-      return $template;
+      return childElements;
     },
   };
 
