@@ -57,16 +57,27 @@ function Template(element) {
           throw new Error('The content {{' + contentKey + '}} is missing.');
 
         const contents = this.data[contentKey];
-        const insertTextMethod = this._insertContentKey;
+        if (!contents || contents.length === 0) return;
 
+        const shouldPrepend = $item.hasAttribute('prepend'),
+          shouldReplace = $item.hasAttribute('replace-container');
+
+        shouldPrepend && $item.removeAttribute('prepend');
+
+        let where = shouldPrepend ? 'afterbegin' : 'beforeend';
+        if (shouldReplace) where = shouldPrepend ? 'afterend' : 'beforebegin';
+
+        const insertTextMethod = this._insertContentKey;
         Array.isArray(contents)
           ? contents.forEach(insertContent)
           : insertContent(contents);
 
+        shouldReplace && $item.remove();
+
         function insertContent(content) {
           if (content instanceof Element)
-            return $item.insertAdjacentElement('beforeend', content);
-          $item[insertTextMethod]('beforeend', content);
+            return $item.insertAdjacentElement(where, content);
+          $item[insertTextMethod](where, content);
         }
       },
       value: function valueTemplate($item, attr) {
@@ -119,9 +130,9 @@ function Template(element) {
     },
     _handleItemAttribute($item, itemAttr) {
       const attrName = itemAttr.name.replace(/^(item-)/, '');
-      const isHandler = attrName in this.handlers;
       const attribute = { name: attrName, value: itemAttr.value };
 
+      const isHandler = attrName in this.handlers;
       isHandler
         ? this.handlers[attrName].call(this, $item, attribute)
         : this.convertToAttribute($item, attribute);
