@@ -16,6 +16,7 @@ describe('Template functionalities', () => {
     );
 
     describe(`[<${tag}>]`, templateFunctionalities);
+    describe(`[<${tag}>] Template.utils`, templateUtils);
   });
 
   function templateFunctionalities() {
@@ -196,6 +197,55 @@ describe('Template functionalities', () => {
       expect($first.value).toBe('Some text');
       expect($second.checked).toBe(true);
       expect($third.checked).toBe(false);
+    });
+  }
+
+  function templateUtils() {
+    const templateData = {
+      textValue: '',
+      trueToggleValue: true,
+      falseToggleValue: false,
+    };
+
+    beforeEach(() => {
+      const { window } = new JSDOM(defaultHTMLFile);
+
+      global.window = window;
+      global.document = window.document;
+      global.HTMLElement = window.HTMLElement;
+      global.Element = window.Element;
+    });
+
+    it('should instantiate the Template and remove the template element from DOM', () => {
+      const element = '#template-element-check-value';
+
+      expect(document.querySelector(element)).not.toBeNull();
+
+      expect(() => {
+        const template = Template.once(element);
+        const result = template.createElement(templateData);
+        Array.isArray(result)
+          ? result.forEach((r) => expect(r).toHaveProperty('tagName'))
+          : expect(result).toHaveProperty('tagName');
+      }).not.toThrow();
+
+      expect(() => new Template(element)).toThrow();
+      expect(document.querySelector(element)).toBeNull();
+    });
+
+    it('should create the template element once', () => {
+      const element = '#template-element-check-value';
+      expect(document.querySelector(element)).not.toBeNull();
+
+      expect(() => {
+        const result = Template.createOnce(element, templateData);
+        Array.isArray(result)
+          ? result.forEach((r) => expect(r).toHaveProperty('tagName'))
+          : expect(result).toHaveProperty('tagName');
+      }).not.toThrow();
+
+      expect(() => new Template(element)).toThrow();
+      expect(document.querySelector(element)).toBeNull();
     });
   }
 });
