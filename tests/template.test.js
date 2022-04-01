@@ -45,25 +45,6 @@ describe('Template functionalities', () => {
       };
     });
 
-    const getCardElements = (el) => {
-      return {
-        card: el,
-        cardTitle: el.querySelector('.card-title'),
-        cardHeader: el.querySelector('.card-header'),
-        cardContent: el.querySelector('.card-body'),
-      };
-    };
-
-    const matchCard = (el, attr, content) => {
-      const { card, cardTitle, cardHeader, cardContent } = getCardElements(el);
-      expect(card.getAttribute('id')).toBe(
-        `${attr.cardName}-${attr.cardIndex}`
-      );
-      expect(cardHeader.getAttribute('title')).toBe(attr.cardAction);
-      expect(cardTitle.textContent).toBe(content.cardTitle);
-      expect(cardContent.textContent).toBe(content.cardContent);
-    };
-
     it('should render the template without data', () => {
       document.body.appendChild(template.createElement());
       expect(document.querySelector('.card')).not.toBeNull();
