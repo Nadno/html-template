@@ -27,122 +27,123 @@ function Template(element) {
 }
 
 (function () {
-  function TemplateBuilder(template, acceptHTML) {
+  function TemplateCreator(template, acceptHTML) {
     this._template = template;
     this._insertContentKey = acceptHTML
       ? 'insertAdjacentHTML'
       : 'insertAdjacentText';
   }
 
-  TemplateBuilder.prototype = {
-    build: function () {
-      return this._template;
-    },
-    attr: function templateAttr(dataSet) {
-      if (!dataSet || typeof dataSet !== 'object') return this;
+  TemplateCreator.create = function createTemplateElement(
+    template,
+    data,
+    options
+  ) {
+    const creator = new TemplateCreator(
+      template.cloneNode(true),
+      options.acceptHTML
+    );
 
-      [].forEach.call(
-        this._getTemplates('[data-attrs]'),
-        this._setTemplateAttrs.bind(this, dataSet)
-      );
-
-      return this;
-    },
-    _setTemplateAttrs: function setTemplateAttrs(dataSet, $el) {
-      const attrsName = $el.dataset.attrs.match(/[^;]+/g);
-      if (!attrsName || !attrsName.length) return;
-
-      attrsName.forEach(setTemplateAttribute);
-
-      function setTemplateAttribute(attrName) {
-        const attrValue = $el.getAttribute(attrName);
-        if (typeof attrValue != 'string') return;
-
-        const value = attrValue.replace(/{{\w+}}/g, replaceTemplateStr);
-        $el.setAttribute(attrName, value);
-      }
-
-      function replaceTemplateStr(templateAttr) {
-        const dataKey = templateAttr.slice(2, templateAttr.length - 2);
-        if (!(dataKey in dataSet))
-          throw new Error('The attribute {{' + dataKey + '}} is missing.');
-
-        if (invalidType(dataSet[dataKey]))
-          throw new TypeError(
-            "The value of a template attribute can't be: " + dataSet[dataKey]
-          );
-
-        return dataSet[dataKey];
-      }
-
-      function invalidType(value) {
-        const type = typeof value;
-        return !~['string', 'number', 'boolean'].indexOf(type);
-      }
-
-      $el.removeAttribute('data-attrs');
-    },
-    content: function templateContent(contentSet) {
-      if (!contentSet || typeof contentSet !== 'object') return this;
-
-      [].forEach.call(
-        this._getTemplates('[data-content]'),
-        this._setTemplateContent.bind(this, contentSet)
-      );
-
-      return this;
-    },
-    _setTemplateContent: function setTemplateContent(contentSet, $el) {
-      const contentKey = String($el.dataset.content).trim();
-      if (!contentKey) return;
-
-      if (!(contentKey in contentSet))
-        throw new Error('The content {{' + contentKey + '}} is missing.');
-
-      const content = contentSet[contentKey];
-
-      content instanceof Array
-        ? content.forEach(this._setContent.bind(this, $el))
-        : this._setContent($el, content);
-
-      $el.removeAttribute('data-content');
-    },
-    _setContent: function setContent($el, content) {
-      if (content instanceof HTMLElement) return $el.appendChild(content);
-      $el[this._insertContentKey]('beforeend', content);
-    },
-    _getTemplates: function getTemplate(query) {
-      const elements = this._template.querySelectorAll(query);
-      if (elements.length === 0)
-        throw new Error("There wasn't any " + query + ' to be assigned');
-
-      return elements;
-    },
+    return creator.unwrapTemplate(creator.make(data));
   };
 
-  Template.prototype = {
-    createElement: function createTemplateElement(data, options) {
-      if (data != null && !this._isObject(data))
-        throw new TypeError('Data must be an object containing keys');
-      if (!this._isObject(options)) options = {};
+  TemplateCreator.prototype = {
+    handlers: {
+      content: function templateContent($item, attr) {
+        const contentKey = attr.value;
+        if (!contentKey) return;
 
-      const template = new TemplateBuilder(
-        this._template.cloneNode(true),
-        !!options.acceptHTML
+        if (!(contentKey in this.data))
+          throw new Error('The content {{' + contentKey + '}} is missing.');
+
+        const contents = this.data[contentKey];
+        const insertTextMethod = this._insertContentKey;
+
+        Array.isArray(contents)
+          ? contents.forEach(insertContent)
+          : insertContent(contents);
+
+        function insertContent(content) {
+          if (content instanceof Element)
+            return $item.insertAdjacentElement('beforeend', content);
+          $item[insertTextMethod]('beforeend', content);
+        }
+      },
+    },
+    make: function make(data) {
+      if (!data) return this._template;
+
+      const items = Array.prototype.slice.call(
+        this._template.querySelectorAll('[item]')
       );
 
-      let content = data,
-        attr = data;
+      if (!items.length)
+        throw new Error(
+          'No template items found. Just use data when you have items.'
+        );
 
-      const hasSeparatedProps = !!data && ('content' in data || 'attr' in data);
-      if (hasSeparatedProps) {
-        content = this._isObject(data.content) ? data.content : undefined;
-        attr = this._isObject(data.attr) ? data.attr : undefined;
-      }
+      this.data = data;
+      items.forEach(this.makeItem.bind(this));
 
-      return this._unwrapElement(template.content(content).attr(attr).build());
+      return this._template;
     },
-    _unwrapElement: function unwrapTemplate(element) {
+    makeItem: function buildItem($item) {
+      this._forEachItemAttribute(
+        $item,
+        this._handleItemAttribute.bind(this, $item)
+      );
+
+      $item.removeAttribute('item');
+    },
+    _forEachItemAttribute($element, cb) {
+      const attributes = $element.attributes,
+        length = attributes.length;
+
+      for (let index = 0; index < length; index++) {
+        const name = attributes[index].name;
+        if (!name.startsWith('item-')) continue;
+        cb.call(null, name, attributes[index].value, attributes);
+      }
+    },
+    _handleItemAttribute($item, name, value) {
+      const attr = name.replace(/^(item-)/, '');
+      const isHandler = attr in this.handlers;
+      const attribute = { name: attr, value: value };
+
+      isHandler
+        ? this.handlers[attr].call(this, $item, attribute)
+        : this.convertToAttribute($item, attribute);
+
+      $item.removeAttribute(name);
+    },
+    convertToAttribute($item, attr) {
+      $item.setAttribute(
+        attr.name,
+        attr.value.replace(
+          /{{\w+}}/g,
+          this._replaceTemplateAttribute.bind(this)
+        )
+      );
+    },
+    _replaceTemplateAttribute(templateAttr) {
+      const dataKey = templateAttr.slice(2, templateAttr.length - 2);
+
+      if (!(dataKey in this.data))
+        throw new Error('The attribute {{' + dataKey + '}} is missing.');
+
+      const value = this.data[dataKey];
+      if (this._invalidType(value))
+        throw new TypeError(
+          "The value of a template attribute can't be: " + value
+        );
+
+      return value;
+    },
+    _invalidType: function invalidType(value) {
+      const type = typeof value;
+      return !~['string', 'number', 'boolean'].indexOf(type);
+    },
+    unwrapTemplate: function unwrapTemplate(element) {
       if (!element.firstElementChild) throw new TypeError('Template is empty');
       const $template = element.firstElementChild;
 
@@ -153,6 +154,16 @@ function Template(element) {
       }
 
       return $template;
+    },
+  };
+
+  Template.prototype = {
+    createElement: function createTemplateElement(data, options) {
+      if (data != null && !this._isObject(data))
+        throw new TypeError('Data must be an object containing keys');
+      if (!this._isObject(options)) options = {};
+
+      return TemplateCreator.create(this._template, data, options);
     },
     _isObject: function isObject(value) {
       return (
