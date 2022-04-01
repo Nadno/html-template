@@ -88,33 +88,35 @@ function Template(element) {
       return this._template;
     },
     makeItem: function buildItem($item) {
-      this._forEachItemAttribute(
-        $item,
+      this._getItemAttributes($item).forEach(
         this._handleItemAttribute.bind(this, $item)
       );
 
       $item.removeAttribute('item');
     },
-    _forEachItemAttribute($element, cb) {
-      const attributes = $element.attributes,
+    _getItemAttributes($element) {
+      const result = [],
+        attributes = $element.attributes,
         length = attributes.length;
 
       for (let index = 0; index < length; index++) {
         const name = attributes[index].name;
         if (!name.startsWith('item-')) continue;
-        cb.call(null, name, attributes[index].value, attributes);
+        result.push({ name: name, value: attributes[index].value });
       }
+
+      return result;
     },
-    _handleItemAttribute($item, name, value) {
-      const attr = name.replace(/^(item-)/, '');
-      const isHandler = attr in this.handlers;
-      const attribute = { name: attr, value: value };
+    _handleItemAttribute($item, itemAttr) {
+      const attrName = itemAttr.name.replace(/^(item-)/, '');
+      const isHandler = attrName in this.handlers;
+      const attribute = { name: attrName, value: itemAttr.value };
 
       isHandler
-        ? this.handlers[attr].call(this, $item, attribute)
+        ? this.handlers[attrName].call(this, $item, attribute)
         : this.convertToAttribute($item, attribute);
 
-      $item.removeAttribute(name);
+      $item.removeAttribute(itemAttr.name);
     },
     convertToAttribute($item, attr) {
       $item.setAttribute(
