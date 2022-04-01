@@ -1,11 +1,7 @@
 'use strict';
 
 function Template(element) {
-  if (typeof element === 'string') element = document.querySelector(element);
-  if (!(element instanceof HTMLElement))
-    throw new TypeError(
-      'The argument passed to Template must be a query string or an HTMLElement'
-    );
+  element = this._getElement(element);
 
   const isTemplateTag = 'content' in element;
   if (isTemplateTag) {
@@ -189,6 +185,16 @@ function Template(element) {
     },
   };
 
+  Template.createOnce = function createTemplateElementOnce(element, data) {
+    return Template.once(element).createElement(data);
+  };
+
+  Template.once = function getTemplateElementOnce(element) {
+    element = getElement(element);
+    element.remove();
+    return new Template(element);
+  };
+
   Template.prototype = {
     createElement: function createTemplateElement(data, options) {
       if (data != null && !this._isObject(data))
@@ -197,12 +203,22 @@ function Template(element) {
 
       return TemplateCreator.create(this._template, data, options);
     },
+    _getElement: getElement,
     _isObject: function isObject(value) {
       return (
         typeof value === 'object' && !Array.isArray(value) && value !== null
       );
     },
   };
+
+  function getElement(element) {
+    if (typeof element === 'string') element = document.querySelector(element);
+    if (!(element instanceof HTMLElement))
+      throw new TypeError(
+        'The argument passed to Template must be a query string or an HTMLElement'
+      );
+    return element;
+  }
 
   typeof exports === 'object' &&
     typeof module !== 'undefined' &&
