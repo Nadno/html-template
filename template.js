@@ -69,6 +69,16 @@ function Template(element) {
           $item[insertTextMethod]('beforeend', content);
         }
       },
+      value: function valueTemplate($item, attr) {
+        if (!$item.matches('input, textarea')) return;
+
+        const value = this.data[attr.value];
+        if (value == null) return;
+
+        $item.matches('[type=checkbox], [type=radio]')
+          ? ($item.checked = value === true)
+          : ($item.value = value);
+      },
     },
     make: function make(data) {
       if (!data) return this._template;
