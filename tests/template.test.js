@@ -184,9 +184,37 @@ describe('Template functionalities', () => {
         $containerReplaced.querySelector('.card-body-content-container')
       ).toBeNull();
 
-      expect($containerReplaced.querySelector('.card-body').textContent.trim()).toBe(
-        [...expectedPrepend].join('')
-      );
+      expect(
+        $containerReplaced.querySelector('.card-body').textContent.trim()
+      ).toBe([...expectedPrepend].join(''));
+    });
+
+    it('should return all children when having it', () => {
+      const template = new Template('#template-element-check-value');
+      expect(() => {
+        const [$first, $second, $third] = template.createElement({
+          textValue: '',
+          trueToggleValue: true,
+          falseToggleValue: false,
+        });
+
+        expect($first.type).toBe('text');
+        expect($second.type).toBe('checkbox');
+        expect($third.type).toBe('radio');
+      }).not.toThrow();
+    });
+
+    it('should assign the [item-value] to the inputs values', () => {
+      const template = new Template('#template-element-check-value');
+      const [$first, $second, $third] = template.createElement({
+        textValue: 'Some text',
+        trueToggleValue: true,
+        falseToggleValue: false,
+      });
+
+      expect($first.value).toBe('Some text');
+      expect($second.checked).toBe(true);
+      expect($third.checked).toBe(false);
     });
   }
 });
