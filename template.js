@@ -55,26 +55,18 @@ function Template(element) {
         const contents = this.data[contentKey];
         if (!contents || contents.length === 0) return;
 
-        const shouldPrepend = $item.hasAttribute('prepend'),
-          shouldReplace = $item.hasAttribute('replace-container');
+        const creator = this;
+        readInsertOptions($item, function (where) {
+          const insertContent = function insertContent(content) {
+            if (content instanceof Element)
+              return $item.insertAdjacentElement(where, content);
+            $item[creator._insertContentKey](where, content);
+          };
 
-        shouldPrepend && $item.removeAttribute('prepend');
-
-        let where = shouldPrepend ? 'afterbegin' : 'beforeend';
-        if (shouldReplace) where = shouldPrepend ? 'afterend' : 'beforebegin';
-
-        const insertTextMethod = this._insertContentKey;
-        Array.isArray(contents)
-          ? contents.forEach(insertContent)
-          : insertContent(contents);
-
-        shouldReplace && $item.remove();
-
-        function insertContent(content) {
-          if (content instanceof Element)
-            return $item.insertAdjacentElement(where, content);
-          $item[insertTextMethod](where, content);
-        }
+          Array.isArray(contents)
+            ? contents.forEach(insertContent)
+            : insertContent(contents);
+        });
       },
       value: function valueTemplate($item, attr) {
         if (!$item.matches('input, textarea')) return;
@@ -203,6 +195,29 @@ function Template(element) {
 
       return TemplateCreator.create(this._template, data, options);
     },
+    render: function renderTemplateElements(container, data, options) {
+      container = getElement(container);
+
+      const template = this;
+      if (!template._isObject(options)) options = {};
+
+      readInsertOptions(
+        container,
+        function (where) {
+          const insertElement = function insertElement(data) {
+            container.insertAdjacentElement(
+              where,
+              template.createElement(data, options)
+            );
+          };
+
+          Array.isArray(data)
+            ? data.forEach(insertElement)
+            : insertElement(data);
+        },
+        options
+      );
+    },
     _getElement: getElement,
     _isObject: function isObject(value) {
       return (
@@ -213,11 +228,29 @@ function Template(element) {
 
   function getElement(element) {
     if (typeof element === 'string') element = document.querySelector(element);
-    if (!(element instanceof HTMLElement))
+    if (!(element instanceof Element))
       throw new TypeError(
         'The argument passed to Template must be a query string or an HTMLElement'
       );
     return element;
+  }
+
+  function readInsertOptions(container, cb, options) {
+    if (options == null) options = {};
+
+    const shouldPrepend =
+        container.hasAttribute('prepend') || options.prepend === true,
+      shouldReplace =
+        container.hasAttribute('replace-container') || options.replace === true;
+
+    if (shouldPrepend) container.removeAttribute('prepend');
+
+    let where = shouldPrepend ? 'afterbegin' : 'beforeend';
+    if (shouldReplace) where = shouldPrepend ? 'afterend' : 'beforebegin';
+
+    cb(where);
+
+    shouldReplace && container.remove();
   }
 
   typeof exports === 'object' &&
