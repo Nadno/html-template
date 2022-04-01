@@ -16,6 +16,21 @@
       </div>
     </template>
 
+    <template id="template-element-for-replace">
+      <div class="card" item item-id="{{cardName}}-{{cardIndex}}">
+        <div class="card-header" item item-title="{{cardAction}}">
+          <h3 class="card-title" item item-content="cardTitle"></h3>
+        </div>
+        <div class="card-body">
+          <div
+            class="card-body-content-container"
+            item
+            item-content="cardContent"
+          ></div>
+        </div>
+      </div>
+    </template>
+
     <template id="template-element-no-items">
       <div class="card" item-id="{{cardName}}-{{cardIndex}}">
         <div class="card-header" item-title="{{cardAction}}">

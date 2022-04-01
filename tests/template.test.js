@@ -145,5 +145,48 @@ describe('Template functionalities', () => {
       expect(document.querySelector('.card')).not.toBeNull();
       expect(document.querySelectorAll('.paragraph').length).toBe(words.length);
     });
+
+    it('should controls the content insertion using [replace-container] and [prepend] attributes options', () => {
+      const words = ['Lorem', 'Ipsum', 'Dolor', 'Sit'],
+        expectedAppend = words.slice(),
+        expectedPrepend = words.slice().reverse();
+
+      template = new Template('#template-element-for-replace');
+
+      const $templateElement = template._template,
+        $cardBodyContentContainer = $templateElement.querySelector(
+          '.card-body-content-container'
+        );
+
+      const templateData = {
+        ...templateContent,
+        ...templateAttr,
+        cardContent: words,
+      };
+
+      const $appended = template.createElement(templateData);
+
+      $cardBodyContentContainer.setAttribute('prepend', '');
+      const $prepended = template.createElement(templateData);
+
+      $cardBodyContentContainer.setAttribute('replace-container', '');
+      const $containerReplaced = template.createElement(templateData);
+
+      expect(
+        $appended.querySelector('.card-body-content-container').textContent
+      ).toBe(expectedAppend.join(''));
+
+      expect(
+        $prepended.querySelector('.card-body-content-container').textContent
+      ).toBe(expectedPrepend.join(''));
+
+      expect(
+        $containerReplaced.querySelector('.card-body-content-container')
+      ).toBeNull();
+
+      expect($containerReplaced.querySelector('.card-body').textContent.trim()).toBe(
+        [...expectedPrepend].join('')
+      );
+    });
   }
 });
