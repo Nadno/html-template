@@ -27,6 +27,7 @@ describe('Template functionalities', () => {
       global.window = window;
       global.document = window.document;
       global.HTMLElement = window.HTMLElement;
+      global.Element = window.Element;
     });
 
     beforeEach(() => {
@@ -68,30 +69,6 @@ describe('Template functionalities', () => {
       expect(document.querySelector('.card')).not.toBeNull();
     });
 
-    it('should render the template with separated data', () => {
-      document.body.appendChild(
-        template.createElement({
-          content: templateContent,
-          attr: templateAttr,
-        })
-      );
-
-      expect(document.querySelector('.card')).not.toBeNull();
-      matchCard(document.querySelector('.card'), templateAttr, templateContent);
-    });
-
-    it('should render the template without separated data', () => {
-      document.body.appendChild(
-        template.createElement({
-          ...templateContent,
-          ...templateAttr,
-        })
-      );
-
-      expect(document.querySelector('.card')).not.toBeNull();
-      matchCard(document.querySelector('.card'), templateAttr, templateContent);
-    });
-
     it('should accept a HTMLElement as content', () => {
       const paragraph = document.createElement('p');
       paragraph.textContent = 'Lorem Ipsum';
@@ -99,8 +76,9 @@ describe('Template functionalities', () => {
 
       document.body.appendChild(
         template.createElement({
-          content: { ...templateContent, cardContent: paragraph },
-          attr: templateAttr,
+          ...templateContent,
+          ...templateAttr,
+          cardContent: paragraph,
         })
       );
 
@@ -119,8 +97,9 @@ describe('Template functionalities', () => {
 
       document.body.appendChild(
         template.createElement({
-          content: { ...templateContent, cardContent },
-          attr: templateAttr,
+          ...templateContent,
+          ...templateAttr,
+          cardContent,
         })
       );
 
@@ -131,40 +110,40 @@ describe('Template functionalities', () => {
     });
 
     it('should accept an Array of String as content', () => {
-      const paragraphs = ['Lorem', 'Ipsum', 'Dolor', 'Sit'];
+      const words = ['Lorem', 'Ipsum', 'Dolor', 'Sit'];
 
       document.body.appendChild(
         template.createElement({
-          content: { ...templateContent, cardContent: paragraphs },
-          attr: templateAttr,
+          ...templateContent,
+          ...templateAttr,
+          cardContent: words,
         })
       );
 
       expect(document.querySelector('.card')).not.toBeNull();
       expect(document.querySelector('.card-body').textContent).toBe(
-        paragraphs.join('')
+        words.join('')
       );
     });
 
     it('should render the HTML in passed content only if specified on creation options', () => {
-      const paragraphs = ['Lorem', 'Ipsum', 'Dolor', 'Sit'];
-      const cardContent = paragraphs.map(
-        (paragraph) => '<p class="paragraph">' + paragraph + '</p>'
+      const words = ['Lorem', 'Ipsum', 'Dolor', 'Sit'];
+      const cardContent = words.map(
+        (word) => '<p class="paragraph">' + word + '</p>'
       );
 
       document.body.appendChild(
         template.createElement(
           {
-            content: { ...templateContent, cardContent },
-            attr: templateAttr,
+            ...templateContent,
+            ...templateAttr,
+            cardContent,
           },
           { acceptHTML: true }
         )
       );
       expect(document.querySelector('.card')).not.toBeNull();
-      expect(document.querySelectorAll('.paragraph').length).toBe(
-        paragraphs.length
-      );
+      expect(document.querySelectorAll('.paragraph').length).toBe(words.length);
     });
   }
 });

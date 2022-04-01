@@ -40,6 +40,7 @@ describe('Template expected data errors', () => {
       global.window = window;
       global.document = window.document;
       global.HTMLElement = window.HTMLElement;
+      global.Element = window.Element;
     });
 
     it("should throw an error when there's no template", () => {
@@ -58,13 +59,6 @@ describe('Template expected data errors', () => {
           ...templateContent,
         })
       ).toThrowError(matcher);
-
-      expect(() =>
-        new Template('#template-element').createElement({
-          content: templateContent,
-          attr: templateAttr,
-        })
-      ).toThrowError(matcher);
     });
 
     it('should throw an error when there are missing attrs', () => {
@@ -77,29 +71,16 @@ describe('Template expected data errors', () => {
           ...templateContent,
         })
       ).toThrowError(matcher);
-
-      expect(() =>
-        new Template('#template-element').createElement({
-          content: templateContent,
-          attr: templateAttr,
-        })
-      ).toThrowError(matcher);
     });
 
-    it("should throw an error when there's contents and none 'element[data-content]'", () => {
+    it("should throw an error when there's contents and no 'items'", () => {
       expect(() =>
-        new Template('#template-element-without-content').createElement({
+        new Template('#template-element-no-items').createElement({
           content: templateContent,
         })
-      ).toThrowError("There wasn't any [data-content] to be assigned");
-    });
-
-    it("should throw an error when there's attrs and none 'element[data-attrs]'", () => {
-      expect(() =>
-        new Template('#template-element-without-attrs').createElement({
-          attr: templateAttr,
-        })
-      ).toThrowError("There wasn't any [data-attrs] to be assigned");
+      ).toThrowError(
+        'No template items found. Just use data when you have items.'
+      );
     });
 
     it('should throw an error when invalid attributes are passed', () => {
@@ -108,10 +89,9 @@ describe('Template expected data errors', () => {
       invalidAttrs.forEach((invalidAttr) =>
         expect(() =>
           template.createElement({
-            attr: {
-              ...templateAttr,
-              cardIndex: invalidAttr,
-            },
+            ...templateAttr,
+            ...templateContent,
+            cardIndex: invalidAttr,
           })
         ).toThrow(TypeError)
       );
