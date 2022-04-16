@@ -227,7 +227,14 @@ function Template(element) {
   };
 
   function getElement(element) {
-    if (typeof element === 'string') element = document.querySelector(element);
+    if (typeof element === 'string') {
+      const isElementId = /^\#[a-z-_]+$/i.test(element);
+
+      element = isElementId
+        ? document.getElementById(element.substring(1))
+        : document.querySelector(element);
+    }
+
     if (!(element instanceof Element))
       throw new TypeError(
         'The argument passed to Template must be a query string or an HTMLElement'
