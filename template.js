@@ -167,15 +167,11 @@ function Template(element) {
 
       const childElements = new Array(length),
         children = element.children;
+
       for (let index = 0; index < length; index++) {
         const child = children[0];
         childElements[index] = child;
-
-        try {
-          child.remove();
-        } catch (e) {
-          element.removeChild(child);
-        }
+        removeElement(child);
       }
 
       return childElements;
@@ -188,7 +184,7 @@ function Template(element) {
 
   Template.once = function getTemplateElementOnce(element) {
     element = getElement(element);
-    element.remove();
+    removeElement(element);
     return new Template(element);
   };
 
@@ -238,6 +234,11 @@ function Template(element) {
     return isElementId
       ? document.getElementById(element.substring(1))
       : document.querySelector(element);
+  }
+
+  function removeElement(el) {
+    if (!el.remove) return el.parentElement.removeChild(el);
+    return el.remove();
   }
 
   function readInsertOptions(container, cb, options) {
