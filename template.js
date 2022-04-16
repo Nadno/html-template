@@ -103,7 +103,7 @@ function Template(element) {
 
       $item.removeAttribute('item');
     },
-    _getItemAttributes($element) {
+    _getItemAttributes: function getItemAttributes($element) {
       const result = [],
         attributes = $element.attributes,
         length = attributes.length;
@@ -116,7 +116,7 @@ function Template(element) {
 
       return result;
     },
-    _handleItemAttribute($item, itemAttr) {
+    _handleItemAttribute: function handleItemAttribute($item, itemAttr) {
       const attrName = itemAttr.name.replace(/^(item-)/, '');
       const attribute = { name: attrName, value: itemAttr.value };
 
@@ -127,7 +127,7 @@ function Template(element) {
 
       $item.removeAttribute(itemAttr.name);
     },
-    convertToAttribute($item, attr) {
+    convertToAttribute: function convertToAttribute($item, attr) {
       $item.setAttribute(
         attr.name,
         attr.value.replace(
@@ -136,7 +136,7 @@ function Template(element) {
         )
       );
     },
-    _replaceTemplateAttribute(templateAttr) {
+    _replaceTemplateAttribute: function replaceTemplateAttribute(templateAttr) {
       const dataKey = templateAttr.slice(2, templateAttr.length - 2);
 
       if (!(dataKey in this.data))
