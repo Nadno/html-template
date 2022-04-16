@@ -1,7 +1,12 @@
 'use strict';
 
 function Template(element) {
-  element = this._getElement(element);
+  element = typeof element == 'string' ? this._getElement(element) : element;
+
+  if (!(element instanceof Element))
+    throw new TypeError(
+      'The argument passed to Template must be a query string or an HTMLElement'
+    );
 
   const isTemplateTag = 'content' in element;
   if (isTemplateTag) {
@@ -227,19 +232,12 @@ function Template(element) {
   };
 
   function getElement(element) {
-    if (typeof element === 'string') {
-      const isElementId = /^\#[a-z-_]+$/i.test(element);
+    if (typeof element !== 'string') return;
 
-      element = isElementId
-        ? document.getElementById(element.substring(1))
-        : document.querySelector(element);
-    }
-
-    if (!(element instanceof Element))
-      throw new TypeError(
-        'The argument passed to Template must be a query string or an HTMLElement'
-      );
-    return element;
+    const isElementId = /^\#[a-z-_]+$/i.test(element);
+    return isElementId
+      ? document.getElementById(element.substring(1))
+      : document.querySelector(element);
   }
 
   function readInsertOptions(container, cb, options) {
