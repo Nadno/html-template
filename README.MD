@@ -97,10 +97,5 @@ Since this engine was deployed in critical legacy systems, reliability was param
 - Security constraints (HTML injection prevention).
 - State consistency in Form Inputs.
 
-To run tests:
-```bash
-npm test
-```
-
 ## 📝 License
 MIT License.
