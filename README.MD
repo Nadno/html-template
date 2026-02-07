@@ -1,99 +1,110 @@
-# HTML Template
+# HTML Template Engine (Legacy Solution)
 
-Biblioteca js para criar elementos HTML de um jeito dinâmico, permitindo o reuso de código do HTML e JS de maneira simples, fornecer uma interface prática para os templates em HTML e seu construtor em JS.
+A lightweight, zero-dependency JavaScript template engine designed to decouple Frontend rendering from Legacy Backend systems.
 
-## Para que serve?
+## 📖 Context & Motivation
 
-É uma biblioteca bem simples, e pequena que trata de remover códigos HTML extensos e com bastante elementos repetidos, evitando a _manutenção_, _correção_ e _atualização_ de código HTML em multiplos lugares. Ideal para sites simples que trabalham com javascript vanilla. Perfeita para gerar HTML baseado em conteúdos similares, e eliminar a construção de estruturas HTML dentro do javascript.
+**The Engineering Challenge:**
+This library was developed to solve a critical architectural bottleneck in a legacy environment (**ASP Classic / VBScript**). The system originally relied on heavy server-side string concatenation to render HTML, which caused:
+- **High Coupling:** Frontend changes required Backend deployments.
+- **Maintenance Nightmares:** Developers had to navigate through mixed spaghetti code (VBScript + HTML + JS).
+- **Security Risks:** Lack of proper output sanitization leading to potential XSS vulnerabilities.
 
+**The Solution:**
+Without the ability to introduce modern build tools (Webpack/Vite) or frameworks (React/Vue) due to infrastructure constraints, I engineered this engine to:
+1.  **Decouple Architecture:** Move rendering logic entirely to the Client-side, treating the Backend purely as a data API.
+2.  **Enforce Security:** Implemented a "secure-by-default" strategy. HTML injection is blocked unless explicitly whitelisted via `acceptHTML`.
+3.  **Improve DX:** Standardized component creation, reducing the complexity of maintaining the legacy codebase.
 
-## Doc
+---
 
-### Criando templates no HTML
+## 🚀 Key Features
 
-Há dois tipos de dados que os elementos que serão utilizados como template precisão ter:
+- **Zero Dependencies:** Pure JavaScript (ES5+), compatible with virtually any browser.
+- **Secure by Default:** Uses `insertAdjacentText` by default to prevent XSS.
+- **DOM-based Rendering:** Utilizes `cloneNode` and `DocumentFragment` for better performance compared to `innerHTML` replacement.
+- **Strict Error Handling:** Throws descriptive errors if data keys are missing or types are invalid, aiding debugging in complex systems.
 
-- Ou `[data-content]`: que injeta o conteúdo passado para o criador do template direto no elemento em que se encontra o atributo. Esse atributo recebe como valor o nome de uma propriedade que será fornecida na criação do template.
-- Ou `[data-attrs]`. Esse atributo deve conter itens separados por `;`, a fim de gerar uma lista como resultado. Os itens passados para `[data-attrs]` devem ser o nome dos atributos que possuem valores de template `<div class="{{exemplo}}" id="{{exemplo}}" data-attrs="class;id" />`, que possuem entre suas chaves, o nome da propriedade que será passada na criação do template.
+## 📦 Installation
 
-Exemplo HTML:
+Simply include the script in your HTML file. No build step required.
 
 ```html
-<script type="text/html" id="template-element">
-  <div
-    class="card {{cardType}}"
-    id="{{cardName}}-{{cardIndex}}"
-    data-attrs="id;class"
-  >
-    <div class="card-header" title="{{cardAction}}" data-attrs="title">
-      <h3 class="card-title" data-content="cardTitle"></h3>
+<script src="path/to/Template.js"></script>
+```
+## 🛠 Usage guide
+
+### 1. Creating the Template (HTML)
+You can use a `<script type="text/html">` or a standard `<template>` tag.
+
+* Use `data-content="key"` to bind text to an element.
+* Use `data-attrs` to list attributes that need dynamic values (e.g., `id`, `href`, `src`).
+* Use `{{key}}` syntax inside attributes.
+
+```html
+<script type="text/html" id="card-template">
+  <div class="card" id="card-{{id}}" data-attrs="id;class">
+    <div class="card-header">
+      <h3 class="title" data-content="title"></h3>
     </div>
-    <div class="card-body" data-content="cardContent"></div>
+    <div class="card-body" data-content="description"></div>
+    <div class="card-footer">
+      <a href="{{link}}" class="btn" data-attrs="href">Read More</a>
+    </div>
   </div>
 </script>
 ```
 
-### Utilizando os templates criados no JS
+### 💻 Rendering with JavaScript
+Initialize the Template class with your selector and call createElement passing the data object.
+```js
+// 1. Initialize
+const myTemplate = new Template('#card-template');
 
-Para criar os elementos baseados nos seus templates HTML, primeiro você fornece o elemento para o construtor `Template` e então, utiliza a função `createElement` no objeto retornado.
-O construtor `Template` aceita ou uma **query string** para buscar o elemento, ou o **elemento** em si.
-
-> OBS: Caso o elemento fornecido seja um `script[type=text/html]`, apenas o conteúdo interno será utilizado na criação dos elementos.
-
-```javascript
-// Também poderia ser: const template = new Template(document.getElementById('template-element'));
-
-const template = new Template('#template-element');
-template.createElement();
-```
-
-A função `createElement(templateData, options)` recebe dois parâmetros, `templateData` e `options`. `templateData` deve ser um objeto contento os dados a serem passados para o elemento HTML, ou um objeto composto `{ content: {}, attr: {} }` que recebe **content** ou **attr**.
-
-> OBS: O objeto composto por **content** ou **attr** é útil quando o elemento template precisa apenas de um dos dados para ser criado, já que quando um dado é passado e o elemento template não requer esse dado, é lançado um erro. Também é mais simples e reaproveitavel não utilizalo quando o elemento template requer os dois dados.
-
-O argumento `options` aceita apenas uma propriedade **acceptHTML**, que permite a inclusão de conteúdo HTML por string para todos elementos que recebem um conteúdo.
-
-Exemplo:
-Utilizando o elemento template criado em "Criando templates no HTML".
-
-```javascript
-const templateData = {
-  cardType: 'red',
-  cardName: 'card',
-  cardIndex: 1,
-  cardAction: 'Clique aqui e veja o que acontece!',
-  cardTitle: 'Um simples <strong>card</strong>',
-  cardContent: 'Olá mundo!',
+// 2. Define Data
+const data = {
+  id: 101,
+  title: 'Architecture Decision',
+  description: 'Moving from Server-Side Rendering to Client-Side Templates.',
+  link: '/article/101'
 };
 
-const options = {
-  acceptHTML: true,
+// 3. Render and Append
+try {
+  const element = myTemplate.createElement(data);
+  document.body.appendChild(element);
+} catch (error) {
+  console.error('Rendering failed:', error.message);
+}
+```
+
+### 🔒 Security & XSS Prevention
+By default, the engine escapes all HTML content. This is a design choice to prevent Cross-Site Scripting (XSS) when handling user-generated content from the legacy database.
+
+To render raw HTML (e.g., rich text content), you must explicitly opt-in:
+
+```js
+const dangerousData = {
+  content: '<strong>This is bold</strong> and <script>alert("hack")</script>'
 };
 
-document.body.appendChild(
-  new Template('#template-element').createElement(templateData, options)
-);
+// ❌ Safe Mode (Default)
+// Result: "<strong>This is bold</strong>..." (rendered as text)
+myTemplate.createElement(dangerousData);
+
+// ✅ Unsafe Mode (Explicit Opt-in)
+// Result: Bold text is rendered. *Be careful with inputs.*
+myTemplate.createElement(dangerousData, { acceptHTML: true });
 ```
 
-O código javascript irá gerar o seguinte elemento:
+### ⚙️ API Reference
 
-```html
-<div class="card red" id="card-1">
-  <div class="card-header" title="Clique aqui e veja o que acontece!">
-    <h3 class="card-title">Um simples <strong>card</strong></h3>
-  </div>
-  <div class="card-body">Olá mundo!</div>
-</div>
-```
+`new Template(selectorOrElement)`
+- selectorOrElement: A CSS selector string (e.g., '#my-template') or a direct HTMLElement.
+`.createElement(data, options)` Returns a DocumentFragment containing the rendered element.
+- data: An object containing the keys referenced in data-content and {{}}.
+- options:
+  - acceptHTML (Boolean): Defaults to false. If true, allows parsing strings as HTML using insertAdjacentHTML.
 
-Outros pontos a serem considerados sobre `template.createElement`:
-
-- Conteúdos também aceitam elementos do tipo HTMLElement;
-- Conteúdos também aceitam Arrays, sejam de strings ou elementos do tipo HTMLElement;
-- Não lança erros quando não recebe nenhum dado;
-
-Você pode se deparar com erros quando:
-- Quando o elemento ou query passado para o construtor `Template` não for válido ou o elemento não for encontrado;
-- Quando faltar alguma propriedade que o template HTML precise para `[data-content]` ou `[data-attr]`;
-- Quando passar uma propriedade `content` ou `attr` para `template.createElement`, mas nenhum elemento com o atributo `[data-content]` ou `[data-attr]` for encontrado;
-- Quando um atributo passado para `template.createElement` não for: `String | Number | Boolean`;
+## 📝 License
+Distributed under the MIT License.
