@@ -84,3 +84,23 @@ Renders the data directly into a container.
 
 `Template.once(selector)`
 Static helper for one-off templates. Finds the element, removes it from DOM (cleanup), and returns a Template instance.
+
+```js
+// Quick usage for single-use templates
+Template.once('#modal-template').render(document.body, data);
+```
+
+## ✅ Testing & Reliability
+
+Since this engine was deployed in critical legacy systems, reliability was paramount. The library is fully covered by unit tests using **Jest** and **JSDOM** to ensure:
+- Correct DOM manipulation (Prepend/Append/Replace strategies).
+- Security constraints (HTML injection prevention).
+- State consistency in Form Inputs.
+
+To run tests:
+```bash
+npm test
+```
+
+## 📝 License
+MIT License.
