@@ -16,6 +16,7 @@ describe('Template functionalities', () => {
     );
 
     describe(`[<${tag}>]`, templateFunctionalities);
+    describe(`[<${tag}>] Template.utils`, templateUtils);
   });
 
   function templateFunctionalities() {
@@ -27,6 +28,7 @@ describe('Template functionalities', () => {
       global.window = window;
       global.document = window.document;
       global.HTMLElement = window.HTMLElement;
+      global.Element = window.Element;
     });
 
     beforeEach(() => {
@@ -44,52 +46,9 @@ describe('Template functionalities', () => {
       };
     });
 
-    const getCardElements = (el) => {
-      return {
-        card: el,
-        cardTitle: el.querySelector('.card-title'),
-        cardHeader: el.querySelector('.card-header'),
-        cardContent: el.querySelector('.card-body'),
-      };
-    };
-
-    const matchCard = (el, attr, content) => {
-      const { card, cardTitle, cardHeader, cardContent } = getCardElements(el);
-      expect(card.getAttribute('id')).toBe(
-        `${attr.cardName}-${attr.cardIndex}`
-      );
-      expect(cardHeader.getAttribute('title')).toBe(attr.cardAction);
-      expect(cardTitle.textContent).toBe(content.cardTitle);
-      expect(cardContent.textContent).toBe(content.cardContent);
-    };
-
     it('should render the template without data', () => {
       document.body.appendChild(template.createElement());
       expect(document.querySelector('.card')).not.toBeNull();
-    });
-
-    it('should render the template with separated data', () => {
-      document.body.appendChild(
-        template.createElement({
-          content: templateContent,
-          attr: templateAttr,
-        })
-      );
-
-      expect(document.querySelector('.card')).not.toBeNull();
-      matchCard(document.querySelector('.card'), templateAttr, templateContent);
-    });
-
-    it('should render the template without separated data', () => {
-      document.body.appendChild(
-        template.createElement({
-          ...templateContent,
-          ...templateAttr,
-        })
-      );
-
-      expect(document.querySelector('.card')).not.toBeNull();
-      matchCard(document.querySelector('.card'), templateAttr, templateContent);
     });
 
     it('should accept a HTMLElement as content', () => {
@@ -99,8 +58,9 @@ describe('Template functionalities', () => {
 
       document.body.appendChild(
         template.createElement({
-          content: { ...templateContent, cardContent: paragraph },
-          attr: templateAttr,
+          ...templateContent,
+          ...templateAttr,
+          cardContent: paragraph,
         })
       );
 
@@ -119,8 +79,9 @@ describe('Template functionalities', () => {
 
       document.body.appendChild(
         template.createElement({
-          content: { ...templateContent, cardContent },
-          attr: templateAttr,
+          ...templateContent,
+          ...templateAttr,
+          cardContent,
         })
       );
 
@@ -131,40 +92,160 @@ describe('Template functionalities', () => {
     });
 
     it('should accept an Array of String as content', () => {
-      const paragraphs = ['Lorem', 'Ipsum', 'Dolor', 'Sit'];
+      const words = ['Lorem', 'Ipsum', 'Dolor', 'Sit'];
 
       document.body.appendChild(
         template.createElement({
-          content: { ...templateContent, cardContent: paragraphs },
-          attr: templateAttr,
+          ...templateContent,
+          ...templateAttr,
+          cardContent: words,
         })
       );
 
       expect(document.querySelector('.card')).not.toBeNull();
       expect(document.querySelector('.card-body').textContent).toBe(
-        paragraphs.join('')
+        words.join('')
       );
     });
 
     it('should render the HTML in passed content only if specified on creation options', () => {
-      const paragraphs = ['Lorem', 'Ipsum', 'Dolor', 'Sit'];
-      const cardContent = paragraphs.map(
-        (paragraph) => '<p class="paragraph">' + paragraph + '</p>'
+      const words = ['Lorem', 'Ipsum', 'Dolor', 'Sit'];
+      const cardContent = words.map(
+        (word) => '<p class="paragraph">' + word + '</p>'
       );
 
       document.body.appendChild(
         template.createElement(
           {
-            content: { ...templateContent, cardContent },
-            attr: templateAttr,
+            ...templateContent,
+            ...templateAttr,
+            cardContent,
           },
           { acceptHTML: true }
         )
       );
       expect(document.querySelector('.card')).not.toBeNull();
-      expect(document.querySelectorAll('.paragraph').length).toBe(
-        paragraphs.length
-      );
+      expect(document.querySelectorAll('.paragraph').length).toBe(words.length);
+    });
+
+    it('should controls the content insertion using [replace-container] and [prepend] attributes options', () => {
+      const words = ['Lorem', 'Ipsum', 'Dolor', 'Sit'],
+        expectedAppend = words.slice(),
+        expectedPrepend = words.slice().reverse();
+
+      template = new Template('#template-element-for-replace');
+
+      const $templateElement = template._template,
+        $cardBodyContentContainer = $templateElement.querySelector(
+          '.card-body-content-container'
+        );
+
+      const templateData = {
+        ...templateContent,
+        ...templateAttr,
+        cardContent: words,
+      };
+
+      const $appended = template.createElement(templateData);
+
+      $cardBodyContentContainer.setAttribute('prepend', '');
+      const $prepended = template.createElement(templateData);
+
+      $cardBodyContentContainer.setAttribute('replace-container', '');
+      const $containerReplaced = template.createElement(templateData);
+
+      expect(
+        $appended.querySelector('.card-body-content-container').textContent
+      ).toBe(expectedAppend.join(''));
+
+      expect(
+        $prepended.querySelector('.card-body-content-container').textContent
+      ).toBe(expectedPrepend.join(''));
+
+      expect(
+        $containerReplaced.querySelector('.card-body-content-container')
+      ).toBeNull();
+
+      expect(
+        $containerReplaced.querySelector('.card-body').textContent.trim()
+      ).toBe([...expectedPrepend].join(''));
+    });
+
+    it('should return all children when having it', () => {
+      const template = new Template('#template-element-check-value');
+      expect(() => {
+        const [$first, $second, $third] = template.createElement({
+          textValue: '',
+          trueToggleValue: true,
+          falseToggleValue: false,
+        });
+
+        expect($first.type).toBe('text');
+        expect($second.type).toBe('checkbox');
+        expect($third.type).toBe('radio');
+      }).not.toThrow();
+    });
+
+    it('should assign the [item-value] to the inputs values', () => {
+      const template = new Template('#template-element-check-value');
+      const [$first, $second, $third] = template.createElement({
+        textValue: 'Some text',
+        trueToggleValue: true,
+        falseToggleValue: false,
+      });
+
+      expect($first.value).toBe('Some text');
+      expect($second.checked).toBe(true);
+      expect($third.checked).toBe(false);
+    });
+  }
+
+  function templateUtils() {
+    const templateData = {
+      textValue: '',
+      trueToggleValue: true,
+      falseToggleValue: false,
+    };
+
+    beforeEach(() => {
+      const { window } = new JSDOM(defaultHTMLFile);
+
+      global.window = window;
+      global.document = window.document;
+      global.HTMLElement = window.HTMLElement;
+      global.Element = window.Element;
+    });
+
+    it('should instantiate the Template and remove the template element from DOM', () => {
+      const element = '#template-element-check-value';
+
+      expect(document.querySelector(element)).not.toBeNull();
+
+      expect(() => {
+        const template = Template.once(element);
+        const result = template.createElement(templateData);
+        Array.isArray(result)
+          ? result.forEach((r) => expect(r).toHaveProperty('tagName'))
+          : expect(result).toHaveProperty('tagName');
+      }).not.toThrow();
+
+      expect(() => new Template(element)).toThrow();
+      expect(document.querySelector(element)).toBeNull();
+    });
+
+    it('should create the template element once', () => {
+      const element = '#template-element-check-value';
+      expect(document.querySelector(element)).not.toBeNull();
+
+      expect(() => {
+        const result = Template.createOnce(element, templateData);
+        Array.isArray(result)
+          ? result.forEach((r) => expect(r).toHaveProperty('tagName'))
+          : expect(result).toHaveProperty('tagName');
+      }).not.toThrow();
+
+      expect(() => new Template(element)).toThrow();
+      expect(document.querySelector(element)).toBeNull();
     });
   }
 });

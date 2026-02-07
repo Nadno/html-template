@@ -8,29 +8,41 @@
   </head>
   <body>
     <script type="text/html" id="template-element">
-      <div class="card" id="{{cardName}}-{{cardIndex}}" data-attrs="id">
-        <div class="card-header" title="{{cardAction}}" data-attrs="title">
-          <h3 class="card-title" data-content="cardTitle"></h3>
+      <div class="card" item item-id="{{cardName}}-{{cardIndex}}">
+        <div class="card-header" item item-title="{{cardAction}}">
+          <h3 class="card-title" item item-content="cardTitle"></h3>
         </div>
-        <div class="card-body" data-content="cardContent"></div>
+        <div class="card-body" item item-content="cardContent"></div>
       </div>
     </script>
 
-    <script type="text/html" id="template-element-without-attrs">
-      <div class="card" id="{{cardName}}-{{cardIndex}}">
-        <div class="card-header" title="{{cardAction}}">
-          <h3 class="card-title" data-content="cardTitle"></h3>
+    <script type="text/html" id="template-element-check-value">
+      <input type="text" item item-value="textValue" />
+      <input type="checkbox" item item-value="trueToggleValue" />
+      <input type="radio" item item-value="falseToggleValue" />
+    </script>
+
+    <script type="text/html" id="template-element-for-replace">
+      <div class="card" item item-id="{{cardName}}-{{cardIndex}}">
+        <div class="card-header" item item-title="{{cardAction}}">
+          <h3 class="card-title" item item-content="cardTitle"></h3>
         </div>
-        <div class="card-body" data-content="cardContent"></div>
+        <div class="card-body">
+          <div
+            class="card-body-content-container"
+            item
+            item-content="cardContent"
+          ></div>
+        </div>
       </div>
     </script>
 
-    <script type="text/html" id="template-element-without-content">
-      <div class="card" id="{{cardName}}-{{cardIndex}}" data-attrs="id">
-        <div class="card-header" title="{{cardAction}}" data-attrs="title">
-          <h3 class="card-title"></h3>
+    <script type="text/html" id="template-element-no-items">
+      <div class="card" item-id="{{cardName}}-{{cardIndex}}">
+        <div class="card-header" item-title="{{cardAction}}">
+          <h3 class="card-title" item-content="cardTitle"></h3>
         </div>
-        <div class="card-body"></div>
+        <div class="card-body" item-content="cardContent"></div>
       </div>
     </script>
   </body>

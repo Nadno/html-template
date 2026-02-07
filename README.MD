@@ -1,110 +1,101 @@
-# HTML Template Engine (Legacy Solution)
+# HTML Template Engine (Advanced Legacy Solution)
 
-A lightweight, zero-dependency JavaScript template engine designed to decouple Frontend rendering from Legacy Backend systems.
+A robust, pure JavaScript rendering engine designed to bring component-like behavior and form handling to legacy environments (ASP Classic / Vanilla JS).
 
-## 📖 Context & Motivation
+## 📖 Architecture & Pattern
 
-**The Engineering Challenge:**
-This library was developed to solve a critical architectural bottleneck in a legacy environment (**ASP Classic / VBScript**). The system originally relied on heavy server-side string concatenation to render HTML, which caused:
-- **High Coupling:** Frontend changes required Backend deployments.
-- **Maintenance Nightmares:** Developers had to navigate through mixed spaghetti code (VBScript + HTML + JS).
-- **Security Risks:** Lack of proper output sanitization leading to potential XSS vulnerabilities.
+Unlike simple string replacers, this engine works by **DOM Manipulation**. It treats HTML elements as blueprints, parses custom directives (`item-*`), and handles form state intelligently.
 
-**The Solution:**
-Without the ability to introduce modern build tools (Webpack/Vite) or frameworks (React/Vue) due to infrastructure constraints, I engineered this engine to:
-1.  **Decouple Architecture:** Move rendering logic entirely to the Client-side, treating the Backend purely as a data API.
-2.  **Enforce Security:** Implemented a "secure-by-default" strategy. HTML injection is blocked unless explicitly whitelisted via `acceptHTML`.
-3.  **Improve DX:** Standardized component creation, reducing the complexity of maintaining the legacy codebase.
+It was engineered to solve:
+1.  **Form Binding:** Automatically handles `value`, `checked`, and `selected` states for inputs.
+2.  **DOM Placement:** Controls exactly where elements are injected (`prepend`, `append`, `replace`).
+3.  **Clean Syntax:** Uses HTML5-compliant attributes (`item-content`, `item-src`) instead of obscure configuration strings.
 
----
+## 🚀 Features
 
-## 🚀 Key Features
+- **Smart Form Handling:** Detects checkboxes/radios vs. text inputs automatically.
+- **Placement Strategy:** Supports `prepend` (for feeds/logs) and `replace-container` (for swapping skeletons with content).
+- **Directives System:**
+    - `item-content="key"`: Injects text/HTML.
+    - `item-value="key"`: Binds form values.
+    - `item-[attr]="{{key}}"`: Sets any attribute (e.g., `item-href`, `item-src`).
+- **Memory Efficient:** Includes `Template.once()` to consume and cleanup templates from the DOM.
 
-- **Zero Dependencies:** Pure JavaScript (ES5+), compatible with virtually any browser.
-- **Secure by Default:** Uses `insertAdjacentText` by default to prevent XSS.
-- **DOM-based Rendering:** Utilizes `cloneNode` and `DocumentFragment` for better performance compared to `innerHTML` replacement.
-- **Strict Error Handling:** Throws descriptive errors if data keys are missing or types are invalid, aiding debugging in complex systems.
+## 🛠 Usage Guide
 
-## 📦 Installation
-
-Simply include the script in your HTML file. No build step required.
+### 1. The Template (HTML)
+Use standard HTML with `item-*` attributes.
 
 ```html
-<script src="path/to/Template.js"></script>
-```
-## 🛠 Usage guide
-
-### 1. Creating the Template (HTML)
-You can use a `<script type="text/html">` or a standard `<template>` tag.
-
-* Use `data-content="key"` to bind text to an element.
-* Use `data-attrs` to list attributes that need dynamic values (e.g., `id`, `href`, `src`).
-* Use `{{key}}` syntax inside attributes.
-
-```html
-<script type="text/html" id="card-template">
-  <div class="card" id="card-{{id}}" data-attrs="id;class">
-    <div class="card-header">
-      <h3 class="title" data-content="title"></h3>
+<script type="text/html" id="task-template">
+  <div class="task-card" item-class="task-{{status}}">
+    
+    <div class="header">
+        <h3 item-content="title"></h3>
+        <input type="checkbox" item-value="isCompleted">
     </div>
-    <div class="card-body" data-content="description"></div>
-    <div class="card-footer">
-      <a href="{{link}}" class="btn" data-attrs="href">Read More</a>
-    </div>
+
+    <a item-href="/tasks/{{id}}" class="btn">View Details</a>
   </div>
 </script>
+
+<div id="tasks-container"></div>
 ```
 
-### 💻 Rendering with JavaScript
-Initialize the Template class with your selector and call createElement passing the data object.
+### 2. The Logic (Javascript)
+
 ```js
 // 1. Initialize
-const myTemplate = new Template('#card-template');
+const taskTemplate = new Template('#task-template');
 
-// 2. Define Data
-const data = {
-  id: 101,
-  title: 'Architecture Decision',
-  description: 'Moving from Server-Side Rendering to Client-Side Templates.',
-  link: '/article/101'
+// 2. Data Source
+const taskData = {
+  id: 404,
+  title: 'Refactor Legacy Module',
+  status: 'pending',
+  isCompleted: false // Automatically unchecks the checkbox
 };
 
-// 3. Render and Append
-try {
-  const element = myTemplate.createElement(data);
-  document.body.appendChild(element);
-} catch (error) {
-  console.error('Rendering failed:', error.message);
-}
+// 3. Render
+// The 'render' method handles the container injection automatically
+taskTemplate.render('#tasks-container', taskData, {
+  prepend: true // Adds to the top of the list
+});
 ```
 
-### 🔒 Security & XSS Prevention
-By default, the engine escapes all HTML content. This is a design choice to prevent Cross-Site Scripting (XSS) when handling user-generated content from the legacy database.
+## ⚙️ API Reference
 
-To render raw HTML (e.g., rich text content), you must explicitly opt-in:
+`item-` Directives
+The engine scans for any attribute starting with `item-`.
+- `item-content="key"`: Sets the innerHTML or innerText.
+- `item-value="key"`:
+  - For `checkbox`/`radio`: Sets checked property (expects boolean).
+  - For `input`/`textarea`: Sets value property.
+- `item-any="{{key}}"`: Sets any attribute (e.g., `item-id`, `item-src`). The `item-*` prefix is stripped during rendering.
+
+`Template.render(container, data, options)`
+Renders the data directly into a container.
+- `container`: Selector or HTMLElement.
+- `data`: Object or Array of Objects.
+- `options`:
+  - `prepend`: If `true`, adds as first child. (Default: append).
+  - `replace`: If `true`, replaces the container itself (useful for components).
+  - `acceptHTML`: Allow HTML parsing (Security Opt-in).
+
+`Template.once(selector)`
+Static helper for one-off templates. Finds the element, removes it from DOM (cleanup), and returns a Template instance.
 
 ```js
-const dangerousData = {
-  content: '<strong>This is bold</strong> and <script>alert("hack")</script>'
-};
-
-// ❌ Safe Mode (Default)
-// Result: "<strong>This is bold</strong>..." (rendered as text)
-myTemplate.createElement(dangerousData);
-
-// ✅ Unsafe Mode (Explicit Opt-in)
-// Result: Bold text is rendered. *Be careful with inputs.*
-myTemplate.createElement(dangerousData, { acceptHTML: true });
+// Quick usage for single-use templates
+Template.once('#modal-template').render(document.body, data);
 ```
 
-### ⚙️ API Reference
+## ✅ Testing & Reliability
 
-`new Template(selectorOrElement)`
-- selectorOrElement: A CSS selector string (e.g., '#my-template') or a direct HTMLElement.
-`.createElement(data, options)` Returns a DocumentFragment containing the rendered element.
-- data: An object containing the keys referenced in data-content and {{}}.
-- options:
-  - acceptHTML (Boolean): Defaults to false. If true, allows parsing strings as HTML using insertAdjacentHTML.
+Since this engine was deployed in critical legacy systems, reliability was paramount. The library is fully covered by unit tests using **Jest** and **JSDOM** to ensure:
+- Correct DOM manipulation (Prepend/Append/Replace strategies).
+- Security constraints (HTML injection prevention).
+- State consistency in Form Inputs.
 
 ## 📝 License
-Distributed under the MIT License.
+MIT License.

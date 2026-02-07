@@ -1,8 +1,9 @@
 'use strict';
 
 function Template(element) {
-  if (typeof element === 'string') element = document.querySelector(element);
-  if (!(element instanceof HTMLElement))
+  element = typeof element == 'string' ? this._getElement(element) : element;
+
+  if (!(element instanceof Element))
     throw new TypeError(
       'The argument passed to Template must be a query string or an HTMLElement'
     );
@@ -27,97 +28,164 @@ function Template(element) {
 }
 
 (function () {
-  function TemplateBuilder(template, acceptHTML) {
+  function TemplateCreator(template, acceptHTML) {
     this._template = template;
     this._insertContentKey = acceptHTML
       ? 'insertAdjacentHTML'
       : 'insertAdjacentText';
   }
 
-  TemplateBuilder.prototype = {
-    build: function () {
+  TemplateCreator.create = function createTemplateElement(
+    template,
+    data,
+    options
+  ) {
+    const creator = new TemplateCreator(
+      template.cloneNode(true),
+      options.acceptHTML
+    );
+
+    return creator.unwrapTemplate(creator.make(data));
+  };
+
+  TemplateCreator.prototype = {
+    handlers: {
+      content: function templateContent($item, attr) {
+        const contentKey = attr.value;
+        if (!contentKey) return;
+
+        if (!(contentKey in this.data))
+          throw new Error('The content {{' + contentKey + '}} is missing.');
+
+        const contents = this.data[contentKey];
+        if (!contents || contents.length === 0) return;
+
+        const creator = this;
+        readInsertOptions($item, function (where) {
+          const insertContent = function insertContent(content) {
+            if (content instanceof Element)
+              return $item.insertAdjacentElement(where, content);
+            $item[creator._insertContentKey](where, content);
+          };
+
+          Array.isArray(contents)
+            ? contents.forEach(insertContent)
+            : insertContent(contents);
+        });
+      },
+      value: function valueTemplate($item, attr) {
+        if (!$item.matches('input, textarea')) return;
+
+        const value = this.data[attr.value];
+        if (value == null) return;
+
+        $item.matches('[type=checkbox], [type=radio]')
+          ? ($item.checked = value === true)
+          : ($item.value = value);
+      },
+    },
+    make: function make(data) {
+      if (!data) return this._template;
+
+      const items = Array.prototype.slice.call(
+        this._template.querySelectorAll('[item]')
+      );
+
+      if (!items.length)
+        throw new Error(
+          'No template items found. Just use data when you have items.'
+        );
+
+      this.data = data;
+      items.forEach(this.makeItem.bind(this));
+
       return this._template;
     },
-    attr: function templateAttr(dataSet) {
-      if (!dataSet || typeof dataSet !== 'object') return this;
-
-      [].forEach.call(
-        this._getTemplates('[data-attrs]'),
-        this._setTemplateAttrs.bind(this, dataSet)
+    makeItem: function buildItem($item) {
+      this._getItemAttributes($item).forEach(
+        this._handleItemAttribute.bind(this, $item)
       );
 
-      return this;
+      $item.removeAttribute('item');
     },
-    _setTemplateAttrs: function setTemplateAttrs(dataSet, $el) {
-      const attrsName = $el.dataset.attrs.match(/[^;]+/g);
-      if (!attrsName || !attrsName.length) return;
+    _getItemAttributes: function getItemAttributes($element) {
+      const result = [],
+        attributes = $element.attributes,
+        length = attributes.length;
 
-      attrsName.forEach(setTemplateAttribute);
-
-      function setTemplateAttribute(attrName) {
-        const attrValue = $el.getAttribute(attrName);
-        if (typeof attrValue != 'string') return;
-
-        const value = attrValue.replace(/{{\w+}}/g, replaceTemplateStr);
-        $el.setAttribute(attrName, value);
+      for (let index = 0; index < length; index++) {
+        const name = attributes[index].name;
+        if (!name.startsWith('item-')) continue;
+        result.push({ name: name, value: attributes[index].value });
       }
 
-      function replaceTemplateStr(templateAttr) {
-        const dataKey = templateAttr.slice(2, templateAttr.length - 2);
-        if (!(dataKey in dataSet))
-          throw new Error('The attribute {{' + dataKey + '}} is missing.');
-
-        if (invalidType(dataSet[dataKey]))
-          throw new TypeError(
-            "The value of a template attribute can't be: " + dataSet[dataKey]
-          );
-
-        return dataSet[dataKey];
-      }
-
-      function invalidType(value) {
-        const type = typeof value;
-        return !~['string', 'number', 'boolean'].indexOf(type);
-      }
-
-      $el.removeAttribute('data-attrs');
+      return result;
     },
-    content: function templateContent(contentSet) {
-      if (!contentSet || typeof contentSet !== 'object') return this;
+    _handleItemAttribute: function handleItemAttribute($item, itemAttr) {
+      const attrName = itemAttr.name.replace(/^(item-)/, '');
+      const attribute = { name: attrName, value: itemAttr.value };
 
-      [].forEach.call(
-        this._getTemplates('[data-content]'),
-        this._setTemplateContent.bind(this, contentSet)
+      const isHandler = attrName in this.handlers;
+      isHandler
+        ? this.handlers[attrName].call(this, $item, attribute)
+        : this.convertToAttribute($item, attribute);
+
+      $item.removeAttribute(itemAttr.name);
+    },
+    convertToAttribute: function convertToAttribute($item, attr) {
+      $item.setAttribute(
+        attr.name,
+        attr.value.replace(
+          /{{\w+}}/g,
+          this._replaceTemplateAttribute.bind(this)
+        )
       );
-
-      return this;
     },
-    _setTemplateContent: function setTemplateContent(contentSet, $el) {
-      const contentKey = String($el.dataset.content).trim();
-      if (!contentKey) return;
+    _replaceTemplateAttribute: function replaceTemplateAttribute(templateAttr) {
+      const dataKey = templateAttr.slice(2, templateAttr.length - 2);
 
-      if (!(contentKey in contentSet))
-        throw new Error('The content {{' + contentKey + '}} is missing.');
+      if (!(dataKey in this.data))
+        throw new Error('The attribute {{' + dataKey + '}} is missing.');
 
-      const content = contentSet[contentKey];
+      const value = this.data[dataKey];
+      if (this._invalidType(value))
+        throw new TypeError(
+          "The value of a template attribute can't be: " + value
+        );
 
-      content instanceof Array
-        ? content.forEach(this._setContent.bind(this, $el))
-        : this._setContent($el, content);
-
-      $el.removeAttribute('data-content');
+      return value;
     },
-    _setContent: function setContent($el, content) {
-      if (content instanceof HTMLElement) return $el.appendChild(content);
-      $el[this._insertContentKey]('beforeend', content);
+    _invalidType: function invalidType(value) {
+      const type = typeof value;
+      return !~['string', 'number', 'boolean'].indexOf(type);
     },
-    _getTemplates: function getTemplate(query) {
-      const elements = this._template.querySelectorAll(query);
-      if (elements.length === 0)
-        throw new Error("There wasn't any " + query + ' to be assigned');
+    unwrapTemplate: function unwrapTemplate(element) {
+      if (!element.firstElementChild) throw new TypeError('Template is empty');
 
-      return elements;
+      const length = element.children.length;
+      if (length === 1) return element.firstElementChild;
+
+      const childElements = new Array(length),
+        children = element.children;
+
+      for (let index = 0; index < length; index++) {
+        const child = children[0];
+        childElements[index] = child;
+        removeElement(child);
+      }
+
+      return childElements;
     },
+  };
+
+  Template.createOnce = function createTemplateElementOnce(element, data) {
+    return Template.once(element).createElement(data);
+  };
+
+  Template.once = function getTemplateElementOnce(element) {
+    element = getElement(element);
+    removeElement(element);
+    return new Template(element);
   };
 
   Template.prototype = {
@@ -126,40 +194,70 @@ function Template(element) {
         throw new TypeError('Data must be an object containing keys');
       if (!this._isObject(options)) options = {};
 
-      const template = new TemplateBuilder(
-        this._template.cloneNode(true),
-        !!options.acceptHTML
+      return TemplateCreator.create(this._template, data, options);
+    },
+    render: function renderTemplateElements(container, data, options) {
+      container = getElement(container);
+
+      const template = this;
+      if (!template._isObject(options)) options = {};
+
+      readInsertOptions(
+        container,
+        function (where) {
+          const insertElement = function insertElement(data) {
+            container.insertAdjacentElement(
+              where,
+              template.createElement(data, options)
+            );
+          };
+
+          Array.isArray(data)
+            ? data.forEach(insertElement)
+            : insertElement(data);
+        },
+        options
       );
-
-      let content = data,
-        attr = data;
-
-      const hasSeparatedProps = !!data && ('content' in data || 'attr' in data);
-      if (hasSeparatedProps) {
-        content = this._isObject(data.content) ? data.content : undefined;
-        attr = this._isObject(data.attr) ? data.attr : undefined;
-      }
-
-      return this._unwrapElement(template.content(content).attr(attr).build());
     },
-    _unwrapElement: function unwrapTemplate(element) {
-      if (!element.firstElementChild) throw new TypeError('Template is empty');
-      const $template = element.firstElementChild;
-
-      try {
-        $template.remove();
-      } catch (e) {
-        element.removeChild($template);
-      }
-
-      return $template;
-    },
+    _getElement: getElement,
     _isObject: function isObject(value) {
       return (
         typeof value === 'object' && !Array.isArray(value) && value !== null
       );
     },
   };
+
+  function getElement(element) {
+    if (typeof element !== 'string') return;
+
+    const isElementId = /^\#[a-z-_]+$/i.test(element);
+    return isElementId
+      ? document.getElementById(element.substring(1))
+      : document.querySelector(element);
+  }
+
+  function removeElement(el) {
+    if (!el.remove) return el.parentElement.removeChild(el);
+    return el.remove();
+  }
+
+  function readInsertOptions(container, cb, options) {
+    if (options == null) options = {};
+
+    const shouldPrepend =
+        container.hasAttribute('prepend') || options.prepend === true,
+      shouldReplace =
+        container.hasAttribute('replace-container') || options.replace === true;
+
+    if (shouldPrepend) container.removeAttribute('prepend');
+
+    let where = shouldPrepend ? 'afterbegin' : 'beforeend';
+    if (shouldReplace) where = shouldPrepend ? 'afterend' : 'beforebegin';
+
+    cb(where);
+
+    shouldReplace && container.remove();
+  }
 
   typeof exports === 'object' &&
     typeof module !== 'undefined' &&
